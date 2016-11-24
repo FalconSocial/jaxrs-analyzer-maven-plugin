@@ -4,7 +4,7 @@
 
     <groupId>com.sebastian-daschner</groupId>
     <artifactId>jaxrs-analyzer-maven-plugin</artifactId>
-    <version>0.11-SNAPSHOT</version>
+    <version>0.11-falcon</version>
     <name>JAX-RS Analyzer Maven Plugin</name>
     <packaging>maven-plugin</packaging>
 
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.sebastian-daschner</groupId>
             <artifactId>jaxrs-analyzer</artifactId>
-            <version>0.11-SNAPSHOT</version>
+            <version>0.11-falcon</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.aether</groupId>
@@ -88,14 +88,15 @@
     </scm>
 
     <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-        </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>ext-release-local</id>
+            <name>ext-release-local</name>
+            <url>https://mvn.falcon.io/ext-release-local</url>
         </repository>
+        <snapshotRepository>
+            <id>ext-snapshots-local</id>
+            <url>https://mvn.falcon.io/ext-snapshot-local</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <profiles>

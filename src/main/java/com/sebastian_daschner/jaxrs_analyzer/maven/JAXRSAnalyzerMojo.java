@@ -19,7 +19,10 @@ package com.sebastian_daschner.jaxrs_analyzer.maven;
 import com.sebastian_daschner.jaxrs_analyzer.JAXRSAnalyzer;
 import com.sebastian_daschner.jaxrs_analyzer.LogProvider;
 import com.sebastian_daschner.jaxrs_analyzer.backend.Backend;
+import com.sebastian_daschner.jaxrs_analyzer.backend.BackendFactory;
+import com.sebastian_daschner.jaxrs_analyzer.backend.BackendType;
 import com.sebastian_daschner.jaxrs_analyzer.backend.swagger.SwaggerScheme;
+import com.sebastian_daschner.jaxrs_analyzer.utils.StringUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -50,11 +53,11 @@ import java.util.stream.Stream;
 public class JAXRSAnalyzerMojo extends AbstractMojo {
 
     /**
-     * The chosen backend format. Defaults to plaintext.
+     * The chosen backends format. Defaults to plaintext.
      *
-     * @parameter default-value="plaintext" property="jaxrs-analyzer.backend"
+     * @parameter default-value="plaintext" property="jaxrs-analyzer.backends"
      */
-    private String backend;
+    private String[] backends;
 
     /**
      * The domain where the project will be deployed.
@@ -142,10 +145,17 @@ public class JAXRSAnalyzerMojo extends AbstractMojo {
             return;
         }
 
-        final BackendType backendType = getBackendType();
-        final Backend backend = configureBackend(backendType);
+        final Set<BackendType> backendTypes = Arrays.stream(backends).map(b -> StringUtils.parseEnum(BackendType.class, b, "backend type")).collect(Collectors.toSet());
+        final Set<Backend> backends = new BackendFactory().fromTypes(backendTypes,
+                new HashMap<String, String>() {{
+                    put("domain", deployedDomain);
+                    put("swaggerSchemes", "y");
+                    put("renderSwaggerTags", "y");
+                    put("swaggerTagsPathOffset", "y");
+                }}
+        );
 
-        LogProvider.info("analyzing JAX-RS resources, using " + backend.getName() + " backend");
+        LogProvider.info("analyzing JAX-RS resources using backends: " + backends.stream().map(b -> b.getName()).collect(Collectors.joining(", ")));
 
         // add dependencies to analysis class path
         final Set<Path> dependencyPaths = getDependencies();
@@ -159,41 +169,13 @@ public class JAXRSAnalyzerMojo extends AbstractMojo {
         if (!resourcesDirectory.exists() && !resourcesDirectory.mkdirs())
             throw new MojoExecutionException("Could not create directory " + resourcesDirectory);
 
-        final Path fileLocation = resourcesDirectory.toPath().resolve(backendType.getFileLocation());
+        final Path fileLocation = resourcesDirectory.toPath();
 
         // start analysis
         final long start = System.currentTimeMillis();
-        new JAXRSAnalyzer(projectPaths, dependencyPaths, project.getName(), project.getVersion(), backend, fileLocation).analyze();
+
+        new JAXRSAnalyzer(projectPaths, Collections.emptySet(), dependencyPaths, project.getName(), project.getVersion(), backends, fileLocation).analyze();
         LogProvider.debug("Analysis took " + (System.currentTimeMillis() - start) + " ms");
-    }
-
-    private BackendType getBackendType() {
-        switch (backend.toLowerCase()) {
-            case "plaintext":
-                return BackendType.PLAINTEXT;
-            case "asciidoc":
-                return BackendType.ASCIIDOC;
-            case "swagger":
-                return BackendType.SWAGGER;
-            default:
-                throw new IllegalArgumentException("Backend " + backend + " not valid! Valid values are: " +
-                        Stream.of(BackendType.values()).map(Enum::name).map(String::toLowerCase).collect(Collectors.joining(", ")));
-        }
-    }
-
-    private Backend configureBackend(final BackendType backendType) throws IllegalArgumentException {
-        final Set<SwaggerScheme> schemes = Stream.of(swaggerSchemes).map(this::getSwaggerScheme).collect(() -> EnumSet.noneOf(SwaggerScheme.class), Set::add, Set::addAll);
-
-        switch (backendType) {
-            case PLAINTEXT:
-                return Backend.plainText().build();
-            case ASCIIDOC:
-                return Backend.asciiDoc().build();
-            case SWAGGER:
-                return Backend.swagger().domain(deployedDomain).schemes(schemes).renderTags(renderSwaggerTags, swaggerTagsPathOffset).build();
-            default:
-                throw new IllegalArgumentException("Unknown backend type " + backendType);
-        }
     }
 
     private SwaggerScheme getSwaggerScheme(final String scheme) {
