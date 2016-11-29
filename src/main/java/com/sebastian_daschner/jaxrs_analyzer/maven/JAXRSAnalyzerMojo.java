@@ -57,7 +57,7 @@ public class JAXRSAnalyzerMojo extends AbstractMojo {
      *
      * @parameter default-value="plaintext" property="jaxrs-analyzer.backends"
      */
-    private String[] backends;
+    private String backends;
 
     /**
      * The domain where the project will be deployed.
@@ -71,7 +71,7 @@ public class JAXRSAnalyzerMojo extends AbstractMojo {
      *
      * @parameter default-value="http" property="jaxrs-analyzer.swaggerSchemes"
      */
-    private String[] swaggerSchemes;
+    private String swaggerSchemes;
 
     /**
      * Specifies if Swagger tags should be generated.
@@ -133,25 +133,17 @@ public class JAXRSAnalyzerMojo extends AbstractMojo {
      */
     private List<RemoteRepository> remoteRepos;
 
-    private File resourcesDirectory;
-
     @Override
     public void execute() throws MojoExecutionException {
         injectMavenLoggers();
 
-        // avoid execution if output directory does not exist
-        if (!outputDirectory.exists() || !outputDirectory.isDirectory()) {
-            LogProvider.info("skipping non existing directory " + outputDirectory);
-            return;
-        }
-
-        final Set<BackendType> backendTypes = Arrays.stream(backends).map(b -> StringUtils.parseEnum(BackendType.class, b, "backend type")).collect(Collectors.toSet());
+        final Set<BackendType> backendTypes = StringUtils.parseEnumSet(BackendType.class, backends, "Backend types");
         final Set<Backend> backends = new BackendFactory().fromTypes(backendTypes,
                 new HashMap<String, String>() {{
                     put("domain", deployedDomain);
-                    put("swaggerSchemes", "y");
-                    put("renderSwaggerTags", "y");
-                    put("swaggerTagsPathOffset", "y");
+                    put("swaggerSchemes", swaggerSchemes);
+                    put("renderSwaggerTags", Boolean.toString(renderSwaggerTags));
+                    put("swaggerTagsPathOffset", Integer.toString(swaggerTagsPathOffset));
                 }}
         );
 
@@ -164,34 +156,13 @@ public class JAXRSAnalyzerMojo extends AbstractMojo {
         final Set<Path> projectPaths = Collections.singleton(outputDirectory.toPath());
         LogProvider.debug("Project paths are: " + projectPaths);
 
-        // create target sub-directory
-        resourcesDirectory = Paths.get(buildDirectory.getPath(), "jaxrs-analyzer").toFile();
-        if (!resourcesDirectory.exists() && !resourcesDirectory.mkdirs())
-            throw new MojoExecutionException("Could not create directory " + resourcesDirectory);
-
-        final Path fileLocation = resourcesDirectory.toPath();
+        final Path fileLocation = Paths.get(buildDirectory.getPath(), "apidocs");
 
         // start analysis
         final long start = System.currentTimeMillis();
 
         new JAXRSAnalyzer(projectPaths, Collections.emptySet(), dependencyPaths, project.getName(), project.getVersion(), backends, fileLocation).analyze();
         LogProvider.debug("Analysis took " + (System.currentTimeMillis() - start) + " ms");
-    }
-
-    private SwaggerScheme getSwaggerScheme(final String scheme) {
-        switch (scheme.toLowerCase()) {
-            case "http":
-                return SwaggerScheme.HTTP;
-            case "https":
-                return SwaggerScheme.HTTPS;
-            case "ws":
-                return SwaggerScheme.WS;
-            case "wss":
-                return SwaggerScheme.WSS;
-            default:
-                throw new IllegalArgumentException("Swagger scheme " + scheme + " not valid! Valid values are: " +
-                        Stream.of(SwaggerScheme.values()).map(Enum::name).map(String::toLowerCase).collect(Collectors.joining(", ")));
-        }
     }
 
     private void injectMavenLoggers() {

@@ -24,6 +24,8 @@ To enable the plugin, simply add these lines to your pom.xml in the `<plugins>` 
 </plugin>
 ----
 
-After building your project, the documentation resides under 'target/jaxrs-analyzer/'.
+You can generate the api docs with mvn process-classes (but will also be generated with e.g. mvn package).
+
+After building your project, the documentation resides under 'target/apidocs/'.
 
 For all configuration options please see the Maven plugin https://github.com/sdaschner/jaxrs-analyzer-maven-plugin/blob/master/Documentation.adoc[documentation].
