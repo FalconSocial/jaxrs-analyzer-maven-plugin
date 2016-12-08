@@ -4,7 +4,7 @@
 
     <groupId>com.sebastian-daschner</groupId>
     <artifactId>jaxrs-analyzer-maven-plugin</artifactId>
-    <version>0.11-falcon</version>
+    <version>0.11.2-falcon</version>
     <name>JAX-RS Analyzer Maven Plugin</name>
     <packaging>maven-plugin</packaging>
 
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.sebastian-daschner</groupId>
             <artifactId>jaxrs-analyzer</artifactId>
-            <version>0.11-falcon</version>
+            <version>0.11.2-falcon</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.aether</groupId>
